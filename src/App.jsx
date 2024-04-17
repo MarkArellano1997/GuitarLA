@@ -5,14 +5,26 @@ import { db } from "./data/db"
 
 function App() {
 
-  const [data, setData] = useState(db)
-  const [cart, setCart]=useState([])
+  const initialCart =()=>{
+    const localStorageCart=localStorage.getItem('cart')
+    return localStorageCart ? JSON.parse(localStorageCart):[]
+  }
 
+  const [data] = useState(db)
+  const [cart, setCart]=useState(initialCart)
+
+  const MAX_ITEMS=5
+  const MIN_ITEMS=1
+
+  useEffect(()=>{
+    localStorage.setItem('cart',JSON.stringify(cart))
+  },[cart])
 
   function addToCart(item) {
 
     const itemExistis=cart.findIndex(guitar=>guitar.id === item.id )
-    if (itemExistis>=0) {
+    if (itemExistis>=0) {//existe en el carrito
+      if(cart[itemExistis].quantity>=MAX_ITEMS) return
       const updatedCart = [...cart]
       updatedCart[itemExistis].quantity++
       setCart(updatedCart)
@@ -20,13 +32,53 @@ function App() {
       item.quantity = 1
       setCart([...cart, item])
     }
-    
+
   }
+
+  function removeFromCart(id) {
+    setCart(prevCart=>prevCart.filter(guitar=>guitar.id !== id))
+  }
+
+  function increaseQuantity(id) {
+    const updatedCart = cart.map(item=>{
+      if (item.id===id && item.quantity<MAX_ITEMS) {
+        return{
+          ...item,
+          quantity: item.quantity+1
+        }
+      }
+      return item
+    })
+    setCart(updatedCart)
+  }
+
+  function decreaseQuantity(id) {
+    const updatedCart = cart.map(item=>{
+      if (item.id===id && item.quantity>MIN_ITEMS) {
+        return{
+          ...item,
+          quantity: item.quantity-1 
+        }
+      }
+      return item
+    })
+    setCart(updatedCart)
+  }
+
+  function clearCart() {
+    setCart([])
+  }
+
+  
 
   return (
     <>
-      <Header 
+      <Header
+        removeFromCart={removeFromCart}
         cart={cart}
+        increaseQuantity={increaseQuantity}
+        decreaseQuantity={decreaseQuantity}
+        clearCart={clearCart}
       />
 
       <main className="container-xl mt-5">
@@ -37,7 +89,6 @@ function App() {
             <Guitar
               key={guitar.id}
               guitar={guitar}
-              setCart={setCart}
               addToCart={addToCart}
               />
           ))}
